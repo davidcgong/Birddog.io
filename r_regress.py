@@ -21,7 +21,6 @@ count = 0
 date_list = []
 for i in range(0, len(df.columns)-3):
     date_list.append(i)
-print(date_list)
 
 #Get x-ticker for matplotlib
 X_vals = df.columns.values[3:len(df.columns)].tolist()
@@ -29,8 +28,6 @@ X_vals = df.columns.values[3:len(df.columns)].tolist()
 
 valid_state = False
 total_entries = len(df.columns)
-
-print(df['RegionName'])
 
 region_list = df['RegionName']
 region_list = region_list[0: len(region_list)].to_dict()
@@ -44,7 +41,7 @@ while valid_state == False:
     except KeyError:
         print("Invalid state. Please make sure punctuations and spellings are correct.")
 
-
+#includes all the pricing data for the state from 1996-04 to Present        
 state_val_list = df.iloc[state_id, 3:len(df.columns)].values.tolist()
 
 X = date_list
@@ -57,9 +54,11 @@ X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_s
 
 # This function prints out the metrics and does predictions and draws them out on matplotlib
 def graph_metrics(regressor, predictions, X, state_val_list, state_id, regressionType):
-    #get metrics (predicted value a year from now, r^2 score, MAE, and Forecast percentage change)
-    predictions = regressor.predict(X)
+
     y_pred = regressor.predict(len(X)+12)
+    
+    #get metrics (predicted value a year from now, r^2 score, MAE, and Forecast percentage change)
+
     #percentage_change is getting the percentage difference between the predicted value and the most recent value, and then rounded to 3 decimal places.
     #this lets us calculate the forecast percentage change over a year
     percentage_change = round(((y_pred[0] / predictions[len(state_val_list) - 1]) - 1.00) * 100, 3)
@@ -73,6 +72,7 @@ def graph_metrics(regressor, predictions, X, state_val_list, state_id, regressio
     X_Grid = X_Grid.reshape((len(X_Grid), 1))
     
     #plotting out the graph on matplotlib
+    plt.figure(figsize=(16, 9))
     plt.plot(X_vals, state_val_list, label="True")
     plt.plot(X_Grid, regressor.predict(X_Grid), color = 'orange', label='Predictions')
     plt.scatter(X_train, y_train, color='red', label='Selected training points')
@@ -80,11 +80,9 @@ def graph_metrics(regressor, predictions, X, state_val_list, state_id, regressio
     plt.xticks(np.arange(0, len(df.columns), step = 65))
     plt.axis('auto')
     plt.title(regressionType + " (" + state_input +")")
-    plt.xlabel('Months since 1996-04')
+    plt.xlabel('Date')
     plt.ylabel('Price ($)')
     plt.show()
-
-
 
 #------------Elastic Net Regression----------------
 regressor = ElasticNetCV()
@@ -116,5 +114,23 @@ regressor.fit(X_train, y_train)
 predictions = regressor.predict(X)
 
 graph_metrics(regressor, predictions, X, state_val_list, state_id, "Random Forest")
+
+# Forecasting with the last 12 months
+a = []
+for i in range (0, 12):
+    a.append(i)
+#print(last_12_months)
+anX = a
+anX = np.array(anX)
+anX = anX.reshape(-1, 1)
+aY = df.iloc[state_id, len(df.columns)-12:len(df.columns)]
+regressor = LinearRegression()
+regressor.fit(anX, aY)
+predictions = regressor.predict(anX)
+y_pred = regressor.predict(len(anX) + 12)
+percentage_change = round(((y_pred[0] / predictions[len(anX) - 1]) - 1.00) * 100, 3)
+print(predictions)
+print("Forecast percentage change for next year: ", percentage_change)
+
 
 
